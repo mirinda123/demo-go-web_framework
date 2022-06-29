@@ -14,6 +14,10 @@ func main() {
 	m := mirinda.New()
 
 	m.GET("/hello", hello)
+
+	m.PUT("./hello", hello)
+
+	m.POST("./hello", hello)
 	m.ServerStart(":9999")
 
 }
