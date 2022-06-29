@@ -20,8 +20,9 @@ type Mirinda struct {
 // 创建一个Mirinda 实例
 func New() (e *Mirinda) {
 	m := &Mirinda{
-		Server:  new(http.Server),
-		routers: make(map[string]*routersValue),
+		Server:          new(http.Server),
+		routers:         make(map[string]*routersValue),
+		middlewareSlice: make([]HandlerFunc),
 	}
 
 	return m
