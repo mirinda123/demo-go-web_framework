@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-type HandlerFunc func(c *Context)
+type HandlerFunc func(c *Context) error
 
 type routersValue struct {
 	f      HandlerFunc
@@ -29,7 +29,7 @@ func New() (e *Mirinda) {
 }
 
 func (m *Mirinda) Use(middleware ...HandlerFunc) {
-	m.middleware = append(e.middleware, middleware...)
+	m.middlewareSlice = append(m.middlewareSlice, middleware...)
 }
 func (m *Mirinda) ServerStart(port string) error {
 	m.Server.Addr = port
@@ -77,7 +77,9 @@ func (m *Mirinda) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// 方法必须配对上
 	if ok && k.method == req.Method {
-		k.f(c)
+		if err := k.f(c); err != nil {
+			m.HTTPErrorHandler(err, c)
+		}
 	} else {
 		fmt.Fprint(w, "404 NOT FOUND")
 	}
