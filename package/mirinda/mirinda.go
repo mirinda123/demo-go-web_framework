@@ -22,7 +22,7 @@ func New() (e *Mirinda) {
 	m := &Mirinda{
 		Server:          new(http.Server),
 		routers:         make(map[string]*routersValue),
-		middlewareSlice: make([]HandlerFunc),
+		middlewareSlice: make([]HandlerFunc, 0),
 	}
 
 	return m
@@ -84,4 +84,13 @@ func (m *Mirinda) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(w, "404 NOT FOUND")
 	}
 
+}
+
+func (m *Mirinda) HTTPErrorHandler(err error, c *Context) error {
+
+	// 发送响应
+	h := &HTTPError{Code: 123, Message: err.Error()}
+
+	errReturn := c.responseJSON(h)
+	return errReturn
 }

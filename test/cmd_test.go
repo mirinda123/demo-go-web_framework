@@ -8,8 +8,8 @@ import (
 	"github.com/mirinda123/mirinda-goweb/package/mirinda"
 )
 
-func hello(c *mirinda.Context) {
-	c.HttpString("helloworld")
+func hello(c *mirinda.Context) error {
+	return c.HttpString("helloworld")
 }
 func TestGET(t *testing.T) {
 	m := mirinda.New()
