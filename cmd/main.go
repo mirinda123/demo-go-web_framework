@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io/ioutil"
+
 	"github.com/mirinda123/mirinda-goweb/package/mirinda"
 )
 
@@ -19,6 +21,7 @@ func main() {
 
 	m.POST("./hello", hello)
 	m.ServerStart(":9999")
+	ioutil.ReadAll
 
 }
 
