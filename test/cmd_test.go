@@ -24,3 +24,21 @@ func TestGET(t *testing.T) {
 	}
 
 }
+
+func TestMiddlewareBodyLimit(t *testing.T) {
+	m := mirinda.New()
+
+	m.GET("/hello", hello)
+	m.ServerStart(":9999")
+
+	// 这里应该改成POST,请求体多发点东西
+	resp, _ := http.Get("http://localhost:9999/hello")
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		xxxx
+	}
+	if string(body) != "helloworld" {
+		t.Errorf("WRONG")
+	}
+
+}
