@@ -15,10 +15,6 @@ type RateLimiterConfig struct {
 	IdentifierExtractor Extractor
 	// Store 是rate limiter的具体策略的接口
 	Store RateLimiterStore
-	// 当IdentifierExtractor返回 error，ErrorHandler用来错误处理
-	ErrorHandler func(context *mirinda.Context, err error) error
-	// 当 RateLimiter 拒绝此访问，DenyHandler provides a handler to be called
-	DenyHandler func(context mirinda.Context, identifier string, err error) error
 }
 
 // RateLimiterMemoryStore 是  RateLimiterStore 接口的实现
@@ -27,9 +23,9 @@ type RateLimiterMemoryStore struct {
 	mutex    sync.Mutex
 	rate     rate.Limit //for more info check out Limiter docs - https://pkg.go.dev/golang.org/x/time/rate#Limit.
 	//Limit defines the maximum frequency of some events. Limit is represented as number of events per second. A zero Limit allows no events.
-	burst       int // 令牌桶的大小
-	expiresIn   time.Duration
-	lastCleanup time.Time
+	burst       int           // 令牌桶的大小
+	expiresIn   time.Duration //超时时间，控制map中visitor的存活
+	lastCleanup time.Time     //上次回收垃圾的时间
 }
 
 // Visitor signifies a unique user's limiter details
@@ -60,13 +56,13 @@ func CreateRateLimiterWithConfig(config RateLimiterConfig) MiddlewareFunc {
 			//提取身份
 			identifier, err := config.IdentifierExtractor(c)
 			if err != nil {
-				c.M.HTTPErrorHandler(config.ErrorHandler(c, err), c)
+				c.M.HTTPErrorHandler(err, c)
 				return nil
 			}
 			//如果拒绝访问
 			//Allow 对AllowN(time.Now(),1) 进行封装
 			if allow, err := config.Store.Allow(identifier); !allow {
-				c.M.HTTPErrorHandler(config.DenyHandler(c, identifier, err), c)
+				c.M.HTTPErrorHandler(err, c)
 				return nil
 			}
 			return handler(c)
@@ -85,6 +81,8 @@ func (store *RateLimiterMemoryStore) Allow(identifier string) (bool, error) {
 		store.visitors[identifier] = limiter
 	}
 	limiter.lastSeen = time.Now()
+
+	//扫描整个表，进行一次回收
 	if time.Now().Sub(store.lastCleanup) > store.expiresIn {
 		store.cleanupStaleVisitors()
 	}
@@ -94,4 +92,20 @@ func (store *RateLimiterMemoryStore) Allow(identifier string) (bool, error) {
 	//满足则返回 true，同时从桶中消费 n 个 token。反之不消费桶中的Token，返回false。
 	//Allow 实际上就是对 AllowN(time.Now(),1) 进行简化的函数
 	return limiter.AllowN(time.Now(), 1), nil
+}
+
+/*
+cleanupStaleVisitors helps manage the size of the visitors map by removing stale records
+of users who haven't visited again after the expiry time has elapsed
+*/
+func (store *RateLimiterMemoryStore) cleanupStaleVisitors() {
+
+	//遍历每一个visitor
+	for id, visitor := range store.visitors {
+		if time.Now().Sub(visitor.lastSeen) > store.expiresIn {
+			//删除
+			delete(store.visitors, id)
+		}
+	}
+	store.lastCleanup = time.Now()
 }
