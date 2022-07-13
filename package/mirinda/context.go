@@ -49,12 +49,14 @@ type HTTPError struct {
 type Context struct {
 	HttpWriter http.ResponseWriter
 	HttpReq    *http.Request
+	M          *Mirinda
 }
 
-func NewContext(w http.ResponseWriter, req *http.Request) *Context {
+func (m *Mirinda) NewContext(w http.ResponseWriter, req *http.Request) *Context {
 	return &Context{
 		HttpWriter: w,
 		HttpReq:    req,
+		M:          m,
 	}
 }
 func (c *Context) HttpString(s string) error {

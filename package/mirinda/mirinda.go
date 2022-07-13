@@ -86,11 +86,19 @@ func (m *Mirinda) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func (m *Mirinda) HTTPErrorHandler(err error, c *Context) error {
+//返回错误信息给客户端
+func (m *Mirinda) HTTPErrorHandler(err error, c *Context) {
 
-	// 发送响应
-	h := &HTTPError{Code: 123, Message: err.Error()}
+	he, ok := err.(*HTTPError)
 
-	errReturn := c.responseJSON(h)
-	return errReturn
+	//如果类型断言不成功
+	if !ok {
+		he = &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: http.StatusText(http.StatusInternalServerError),
+		}
+	}
+
+	_ = c.responseJSON(he)
+
 }
