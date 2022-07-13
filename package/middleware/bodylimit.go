@@ -6,6 +6,8 @@ import (
 	"github.com/mirinda123/mirinda-goweb/package/mirinda"
 )
 
+//bodylimit中间件的本质是包装一下Reader
+
 //body_limit 限制请求体的大小
 //首先判断ContentLength有没有超过
 //然后判断实际的内容读取有没有超过，这样做双重保险
@@ -21,7 +23,7 @@ type BodyLimitReader struct {
 	//结构体嵌套，自动获得其字段
 	BodyLimitConfig
 
-	reader io.ReadCloser
+	Reader io.ReadCloser
 
 	//计算读取了多少
 	count int64
@@ -34,19 +36,23 @@ type BodyLimitConfig struct {
 	Limit int64
 }
 
-//返回一个中间件函数
 func BodyLimit(limit int64) MiddlewareFunc {
+	c := BodyLimitConfig{
+		Limit: limit,
+	}
+	return CreateBodyLimitWithConfig(c)
+}
+
+//返回一个中间件函数
+func CreateBodyLimitWithConfig(config BodyLimitConfig) MiddlewareFunc {
 	return func(handler mirinda.HandlerFunc) mirinda.HandlerFunc {
 		return func(c *mirinda.Context) (err error) {
 			// content length 是否超标
-			config := BodyLimitConfig{Limit: limit}
-			config.Limit = limit
 			if c.HttpReq.ContentLength > config.Limit {
 				return mirinda.ErrStatusRequestEntityTooLarge
 			}
 			//研究一下源码里的pool是干什么的
 			err = handler(c)
-
 			return
 		}
 	}
@@ -54,7 +60,7 @@ func BodyLimit(limit int64) MiddlewareFunc {
 
 //实现Read接口
 func (blr *BodyLimitReader) Read(b []byte) (n int, err error) {
-	n, err = blr.reader.Read(b)
+	n, err = blr.Reader.Read(b)
 	//每次读取的时候count计数
 	blr.count += int64(n)
 
@@ -65,5 +71,5 @@ func (blr *BodyLimitReader) Read(b []byte) (n int, err error) {
 }
 
 func (r *BodyLimitReader) Close() error {
-	return r.reader.Close()
+	return r.Reader.Close()
 }

@@ -1,4 +1,4 @@
-package main
+package test
 
 import (
 	"io/ioutil"
@@ -35,7 +35,7 @@ func TestMiddlewareBodyLimit(t *testing.T) {
 	resp, _ := http.Get("http://localhost:9999/hello")
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		xxxx
+
 	}
 	if string(body) != "helloworld" {
 		t.Errorf("WRONG")
